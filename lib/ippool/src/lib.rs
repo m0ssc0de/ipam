@@ -53,7 +53,7 @@ impl IpPool {
         }
         self.net_iter.next()
     }
-    pub fn recyle(&mut self, ip: std::net::IpAddr) {
+    pub fn recycle(&mut self, ip: std::net::IpAddr) {
         self.ip_vec.push(ip)
     }
 }
@@ -78,12 +78,31 @@ mod tests {
 
         let net: ipnetwork::IpNetwork = "192.168.100.1/24".parse().unwrap();
         let mut p = crate::IpPool::new(net, 253).unwrap();
-        p.recyle("192.168.100.4".parse().unwrap());
+        p.recycle("192.168.100.4".parse().unwrap());
         match p.new_addr() {
             Some(addr) => {
                 assert_eq!("192.168.100.4".parse::<std::net::IpAddr>().unwrap(), addr);
             }
-            None => {}
+            None => assert!(false),
+        }
+        match p.new_addr() {
+            Some(addr) => {
+                assert_eq!("192.168.100.253".parse::<std::net::IpAddr>().unwrap(), addr);
+            }
+            None => assert!(false),
+        }
+
+        let net: ipnetwork::IpNetwork = "192.168.100.1/24".parse().unwrap();
+        let mut p = crate::IpPool::new(net, 255).unwrap();
+        match p.new_addr() {
+            Some(addr) => {
+                assert_eq!("192.168.100.255".parse::<std::net::IpAddr>().unwrap(), addr);
+            }
+            None => assert!(false),
+        }
+        match p.new_addr() {
+            Some(_) => assert!(false),
+            None => assert!(true),
         }
     }
 }
