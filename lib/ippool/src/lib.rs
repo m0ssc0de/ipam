@@ -1,6 +1,7 @@
 extern crate ipnetwork;
 use std::convert::TryInto;
 use std::fmt;
+use std::sync::{Arc, RwLock };
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum IpPoolError {
