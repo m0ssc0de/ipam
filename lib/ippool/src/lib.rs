@@ -3,22 +3,22 @@ use std::convert::TryInto;
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
-enum Error {
+pub enum IpPoolError {
     CheckOffsetError(std::num::TryFromIntError),
     OffsetTooBig,
 }
 
-impl From<std::num::TryFromIntError> for Error {
-    fn from(err: std::num::TryFromIntError) -> Error {
-        Error::CheckOffsetError(err)
+impl From<std::num::TryFromIntError> for IpPoolError {
+    fn from(err: std::num::TryFromIntError) -> IpPoolError {
+        IpPoolError::CheckOffsetError(err)
     }
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for IpPoolError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::OffsetTooBig => write!(f, "Offset is bigger than size of networking"),
-            Error::CheckOffsetError(ref t) => t.fmt(f),
+            IpPoolError::OffsetTooBig => write!(f, "Offset is bigger than size of networking"),
+            IpPoolError::CheckOffsetError(ref t) => t.fmt(f),
         }
     }
 }
@@ -29,16 +29,16 @@ pub struct IpPool {
 }
 
 impl IpPool {
-    fn new(net: ipnetwork::IpNetwork, offset: usize) -> Result<IpPool, Error> {
+    pub fn new(net: ipnetwork::IpNetwork, offset: usize) -> Result<IpPool, IpPoolError> {
         match net.size() {
             ipnetwork::NetworkSize::V4(s) => {
                 if offset > s.try_into()? {
-                    return Err(Error::OffsetTooBig);
+                    return Err(IpPoolError::OffsetTooBig);
                 }
             }
             ipnetwork::NetworkSize::V6(s) => {
                 if offset > s.try_into()? {
-                    return Err(Error::OffsetTooBig);
+                    return Err(IpPoolError::OffsetTooBig);
                 }
             }
         }
@@ -47,8 +47,7 @@ impl IpPool {
             ip_vec: Vec::new(),
         })
     }
-    // TODO
-    fn new_addr(&mut self) -> Option<std::net::IpAddr> {
+    pub fn new_addr(&mut self) -> Option<std::net::IpAddr> {
         if let Some(ip) = self.ip_vec.pop() {
             return Some(ip);
         }
@@ -68,16 +67,13 @@ mod tests {
             Some(addr) => {
                 assert_eq!("192.168.100.253".parse::<std::net::IpAddr>().unwrap(), addr);
             }
-            // TODO
-            None => {}
+            None => assert!(false),
         }
 
         let net: ipnetwork::IpNetwork = "192.168.100.1/24".parse().unwrap();
-        match crate::IpPool::new(net, 256) {
-            Ok(_) => {
-                // TODO error
-            }
-            Err(e) => assert_eq!(crate::Error::OffsetTooBig, e),
+        match crate::IpPool::new(net, 300) {
+            Err(e) => assert_eq!(crate::IpPoolError::OffsetTooBig, e),
+            Ok(_) => assert!(false),
         }
 
         let net: ipnetwork::IpNetwork = "192.168.100.1/24".parse().unwrap();
