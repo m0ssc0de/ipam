@@ -23,8 +23,9 @@ impl fmt::Display for Error {
     }
 }
 
-struct IpPool {
+pub struct IpPool {
     net_iter: std::iter::Skip<ipnetwork::IpNetworkIterator>,
+    ip_vec: std::vec::Vec<std::net::IpAddr>,
 }
 
 impl IpPool {
@@ -43,11 +44,18 @@ impl IpPool {
         }
         Ok(IpPool {
             net_iter: net.into_iter().skip(offset),
+            ip_vec: Vec::new(),
         })
     }
     // TODO
     fn new_addr(&mut self) -> Option<std::net::IpAddr> {
+        if let Some(ip) = self.ip_vec.pop() {
+            return Some(ip);
+        }
         self.net_iter.next()
+    }
+    pub fn recyle(&mut self, ip: std::net::IpAddr) {
+        self.ip_vec.push(ip)
     }
 }
 #[cfg(test)]
@@ -70,6 +78,16 @@ mod tests {
                 // TODO error
             }
             Err(e) => assert_eq!(crate::Error::OffsetTooBig, e),
+        }
+
+        let net: ipnetwork::IpNetwork = "192.168.100.1/24".parse().unwrap();
+        let mut p = crate::IpPool::new(net, 253).unwrap();
+        p.recyle("192.168.100.4".parse().unwrap());
+        match p.new_addr() {
+            Some(addr) => {
+                assert_eq!("192.168.100.4".parse::<std::net::IpAddr>().unwrap(), addr);
+            }
+            None => {}
         }
     }
 }
