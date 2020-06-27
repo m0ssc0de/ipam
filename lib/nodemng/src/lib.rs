@@ -53,7 +53,6 @@ impl<'a> NodeMNG<'a> {
         })
     }
     pub fn get_node(&mut self, name: &str) -> Result<String, NodeError> {
-        // run_cmd!("nebula-cert ca -name \"Myorganization, Inc\"");
         let ip = match self.ip_pool.new_addr() {
             Some(ip) => ip,
             None => return Err(NodeError::IPErrorEmpty),
@@ -69,12 +68,7 @@ impl<'a> NodeMNG<'a> {
             name,
             name
         )?;
-        run_cmd!(
-            // "cat {} > ./{}/config.yml",
-            "cp {} {}/",
-            self.cfg_path.to_string_lossy(),
-            name
-        )?;
+        run_cmd!("cp {} {}/", self.cfg_path.to_string_lossy(), name)?;
         match run_fun!("tar -zcf - {} | base64 -w 0", name) {
             Ok(s) => Ok(s),
             Err(e) => Err(NodeError::CrtErrorCreat(e)),
