@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate cmd_lib;
-extern crate ippool;
+use ippool;
+use std::fmt;
 use std::path::Path;
 
 #[derive(Debug)]
@@ -9,6 +10,16 @@ pub enum NodeError {
     IPErrorEmpty,
     CrtErrorPathNotExist,
     CrtErrorCreat(std::io::Error),
+}
+impl fmt::Display for NodeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            NodeError::IPErrorEmpty => write!(f, "No ip"),
+            NodeError::CrtErrorPathNotExist => write!(f, "ca crt, key or cfg file not exist"),
+            NodeError::IPErrorCreat(ref t) => t.fmt(f),
+            NodeError::CrtErrorCreat(ref t) => t.fmt(f),
+        }
+    }
 }
 
 impl From<std::io::Error> for NodeError {
@@ -83,15 +94,13 @@ mod tests {
         let crt = std::path::Path::new("./ca.crt");
         let key = std::path::Path::new("./ca.key");
         let cfg = std::path::Path::new("./config.yml");
-        let mut mng = match crate::NodeMNG::new(crt, key, cfg, None) {
-            Ok(m) => m,
-            Err(e) => panic!(e),
-        };
-
-        match mng.get_node("123") {
-            Ok(s) => assert_eq!("ok", s),
-            Err(e) => panic!(e),
+        let mng = crate::NodeMNG::new(crt, key, cfg, None);
+        assert!(mng.is_err());
+        if let Ok(mut mng) = mng {
+            let node = mng.get_node("123");
+            assert!(node.is_err());
         }
+
         assert_eq!(2 + 2, 4);
     }
 }
