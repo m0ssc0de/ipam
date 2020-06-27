@@ -24,6 +24,7 @@ impl fmt::Display for IpPoolError {
 }
 
 pub struct IpPool {
+    net: ipnetwork::IpNetwork,
     net_iter: std::iter::Skip<ipnetwork::IpNetworkIterator>,
     ip_vec: std::vec::Vec<std::net::IpAddr>,
 }
@@ -45,13 +46,22 @@ impl IpPool {
         Ok(IpPool {
             net_iter: net.into_iter().skip(offset),
             ip_vec: Vec::new(),
+            net,
         })
     }
-    pub fn new_addr(&mut self) -> Option<std::net::IpAddr> {
-        if let Some(ip) = self.ip_vec.pop() {
-            return Some(ip);
+
+    pub fn new_addr(&mut self) -> Option<ipnetwork::IpNetwork> {
+        let ip = match self.ip_vec.pop() {
+            Some(ip) => ip,
+            None => match self.net_iter.next() {
+                Some(ip) => ip,
+                None => return None,
+            },
+        };
+        match ipnetwork::IpNetwork::with_netmask(ip, self.net.mask()) {
+            Ok(net) => Some(net),
+            Err(_) => None,
         }
-        self.net_iter.next()
     }
     pub fn recycle(&mut self, ip: std::net::IpAddr) {
         self.ip_vec.push(ip)
