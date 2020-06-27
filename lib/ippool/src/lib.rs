@@ -1,4 +1,4 @@
-extern crate ipnetwork;
+use ipnetwork;
 use std::convert::TryInto;
 use std::fmt;
 
@@ -75,7 +75,12 @@ mod tests {
         let mut p = crate::IpPool::new(net, 253).unwrap();
         match p.new_addr() {
             Some(addr) => {
-                assert_eq!("192.168.100.253".parse::<std::net::IpAddr>().unwrap(), addr);
+                assert_eq!(
+                    "192.168.100.253/24"
+                        .parse::<ipnetwork::IpNetwork>()
+                        .unwrap(),
+                    addr
+                );
             }
             None => assert!(false),
         }
@@ -91,13 +96,21 @@ mod tests {
         p.recycle("192.168.100.4".parse().unwrap());
         match p.new_addr() {
             Some(addr) => {
-                assert_eq!("192.168.100.4".parse::<std::net::IpAddr>().unwrap(), addr);
+                assert_eq!(
+                    "192.168.100.4/24".parse::<ipnetwork::IpNetwork>().unwrap(),
+                    addr
+                );
             }
             None => assert!(false),
         }
         match p.new_addr() {
             Some(addr) => {
-                assert_eq!("192.168.100.253".parse::<std::net::IpAddr>().unwrap(), addr);
+                assert_eq!(
+                    "192.168.100.253/24"
+                        .parse::<ipnetwork::IpNetwork>()
+                        .unwrap(),
+                    addr
+                );
             }
             None => assert!(false),
         }
@@ -106,7 +119,12 @@ mod tests {
         let mut p = crate::IpPool::new(net, 255).unwrap();
         match p.new_addr() {
             Some(addr) => {
-                assert_eq!("192.168.100.255".parse::<std::net::IpAddr>().unwrap(), addr);
+                assert_eq!(
+                    "192.168.100.255/24"
+                        .parse::<ipnetwork::IpNetwork>()
+                        .unwrap(),
+                    addr
+                );
             }
             None => assert!(false),
         }
