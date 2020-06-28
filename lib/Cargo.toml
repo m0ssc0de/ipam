@@ -3,4 +3,5 @@
 members = [
     "ippool",
     "nodemng",
+    "server",
 ]
