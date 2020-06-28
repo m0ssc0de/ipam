@@ -24,7 +24,10 @@ async fn new_node(
     match rx.lock() {
         Ok(rx) => match rx.recv() {
             Ok(mut mng) => match mng.get_node(&path.0) {
-                Ok(cfg) => HttpResponse::Ok(),
+                Ok(cfg) => {
+                    println!("cfg: {}", cfg);
+                    HttpResponse::Ok()
+                }
                 Err(e) => {
                     println!("{}", e);
                     HttpResponse::InternalServerError()
@@ -58,22 +61,28 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
     let appstate = Arc::new(Mutex::new(AppState { size: 10 }));
-    let mnger = nodemng::NodeMNG::new(
+    let mut mnger = nodemng::NodeMNG::new(
         Path::new("./ca.crt").clone(),
         Path::new("./ca.key").clone(),
         Path::new("./config.yml").clone(),
         None,
     )
     .unwrap();
-    // let mnger = Arc::new(Mutex::new(mnger));
-    let (tx0, rx0): (Sender<nodemng::NodeMNG>, Receiver<nodemng::NodeMNG>) = mpsc::channel();
+    let (tx0, rx0): (
+        Sender<Result<String, nodemng::NodeError>>,
+        Receiver<Result<String, nodemng::NodeError>>,
+    ) = mpsc::channel();
     let rx0 = Arc::new(Mutex::new(rx0));
-    let (tx1, rx1): (Sender<bool>, Receiver<bool>) = mpsc::channel();
-    // let rx1 = Arc::new(Mutex::new(rx1));
+    let (tx1, rx1): (Sender<String>, Receiver<String>) = mpsc::channel();
     std::thread::spawn(move || loop {
         match rx1.recv() {
-            Ok(_) => tx0.send(mnger),
-            Err(e) => println!("the thread receive error: {}", e),
+            Ok(name) => {
+                tx0.send(mnger.get_node(&name));
+            }
+            Err(e) => {
+                println!("the thread receive error: {}", e);
+                continue;
+            }
         }
     });
     HttpServer::new(move || {
